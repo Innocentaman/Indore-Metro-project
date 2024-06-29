@@ -1,43 +1,78 @@
-# Indore Metro Route Planner
+# Indore Metro Management System
 
 ## Overview
-This project implements a route planner for the Indore Metro system using C++. It allows users to find the shortest path between two metro stations, display the metro map, and list all stations available. The program uses Dijkstra's algorithm for pathfinding based on real distances between stations in Indore.
+
+The Indore Metro Management System is a comprehensive application designed for managing metro stations, routes, and helpline information. It provides functionalities for users to find the shortest path between stations and for administrators to manage the metro network and helplines. This system is built using C++ and leverages file I/O for persistent data storage.
 
 ## Features
-- **Graph Representation**: Metro stations are represented as vertices connected by edges with real distances.
-- **Shortest Path Calculation**: Uses Dijkstra's algorithm to compute the shortest path between two stations based on kilometers.
-- **Interactive User Interface**: Allows users to input source and destination stations dynamically.
 
-## Usage
-1. **Display Metro Map**: Shows all stations and their connections with distances.
-2. **Find Shortest Path**: Enter source and destination stations to find the shortest route and display interchanges.
-3. **List All Stations**: Prints a list of all metro stations available.
+### For Users
 
-## Dependencies
-- C++ compiler supporting C++11 or later.
+- **User Login and Registration:**
+  - Secure login with username and password.
+  - Register new users and store credentials.
 
-## Contributors
-- Aman Vyas
+- **Find Shortest Path:**
+  - Calculate the shortest path between two metro stations using Dijkstra's algorithm.
+  - Display the total distance and estimated travel charge based on distance.
 
-## Example Usage
-```bash
-$ ./metro
+- **View Important Numbers:**
+  - Display helpline numbers for specific services at a given metro station.
+  - Services include Police, Fire, Ambulance, and Cleaners.
 
-         Indore Metro Route Planner
+- **Unregister Account:**
+  - Option to unregister from the system, removing user data.
 
-Choose an option:
-1. Display Metro Map
-2. Find Shortest Path
-3. List All Stations
-4. Exit
+- **Logout:**
+  - Logout from the user session and end the program.
 
-Enter your choice: 2
+### For Admins
 
-Enter source station: Vijay Nagar
-Enter destination station: Geeta Bhawan
+- **Admin Login:**
+  - Secure login with admin credentials.
 
-Shortest Path from Vijay Nagar to Geeta Bhawan: Vijay Nagar  -> Bhawarkua  -> Regal Square  -> Rajwada  -> Indore Junction  -> Vijay Nagar Square  -> Palasia  -> Geeta Bhawan     16 km
-Interchanges: Vijay Nagar  -> Indore Junction  -> Palasia  
-```
+- **Manage Helplines:**
+  - Update helpline numbers for various services at any station.
+  - Add helplines for new stations as they are introduced to the network.
 
-This README file provides an overview of the Indore Metro Route Planner project, detailing its features, usage instructions, dependencies, and contributors.
+- **Manage Edges:**
+  - Add new routes (edges) between stations with specified distances.
+  - Remove existing routes.
+  - Update distances for existing routes.
+
+- **Logout:**
+  - Logout from the admin session and end the program.
+
+### Additional Features
+
+- **Display Available Stations:**
+  - List all available metro stations to users upon their first login.
+
+## Technologies Used
+
+- **Programming Language:**
+  - C++
+
+- **Data Structures:**
+  - `map` and `unordered_map` for storing user credentials, admin credentials, helplines, and graph edges.
+  - `vector` for representing adjacency lists in the graph.
+  - `set` for implementing priority queues in Dijkstra's algorithm.
+
+- **File I/O:**
+  - `ifstream` and `ofstream` for loading and saving user data, admin credentials, helpline information, and graph edges from/to text files.
+
+- **Algorithm:**
+  - Dijkstra's algorithm for finding the shortest path between two stations.
+
+## Files
+
+- `users.txt`: Stores user credentials (username and password).
+- `admin.txt`: Stores admin credentials (username and password).
+- `helplines.txt`: Contains helpline numbers for each station and service.
+- `edges.txt`: Defines the connections and distances between metro stations.
+
+## How to Run
+
+1. Compile the C++ program using a suitable compiler:
+   ```sh
+   g++ -o metro_system metro_system.cpp
