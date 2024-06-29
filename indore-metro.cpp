@@ -1,302 +1,428 @@
-#include <iostream>
-#include <unordered_map>
+#include <bits/stdc++.h>
+#include <fstream>
+#include <string>
+#include <map>
 #include <vector>
-#include <queue>
-#include <stack>
-#include <list>
+#include <set>
 #include <limits>
-#include <iomanip>
+
 using namespace std;
 
-class Graph_M {
-private:
-    // Structure for each vertex in the graph
-    struct Vertex {
-        unordered_map<string, int> nbrs; // Adjacency list of neighbors with edge weights
+map<string, string> users; // Regular user credentials
+map<string, string> adminCredentials; // Admin credentials
+
+map<string, map<string, string>> helplines;
+
+void loadUsers() {
+    ifstream file("users.txt");
+    if (file.is_open()) {
+        string username, password;
+        while (file >> username >> password) {
+            users[username] = password;
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open users.txt\n";
+    }
+}
+
+void saveUsers() {
+    ofstream file("users.txt");
+    if (file.is_open()) {
+        for (const auto &user : users) {
+            file << user.first << " " << user.second << endl;
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open users.txt\n";
+    }
+}
+
+void loadAdminCredentials() {
+    ifstream file("admin.txt");
+    if (file.is_open()) {
+        string username, password;
+        while (file >> username >> password) {
+            adminCredentials[username] = password;
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open admin.txt\n";
+    }
+}
+
+void loadHelplines() {
+    ifstream file("helplines.txt");
+    if (file.is_open()) {
+        string station, service, number;
+        while (file >> station >> service >> number) {
+            helplines[station][service] = number;
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open helplines.txt\n";
+    }
+}
+
+void saveHelplines() {
+    ofstream file("helplines.txt");
+    if (file.is_open()) {
+        for (const auto &station : helplines) {
+            for (const auto &service : station.second) {
+                file << station.first << " " << service.first << " " << service.second << endl;
+            }
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open helplines.txt\n";
+    }
+}
+
+void addEdge(string s1, string s2, int dist, unordered_map<string, vector<pair<string, int>>>& adj) {
+    adj[s1].push_back({s2, dist});
+    adj[s2].push_back({s1, dist});
+}
+
+void loadEdges(unordered_map<string, vector<pair<string, int>>>& adj) {
+    ifstream file("edges.txt");
+    if (file.is_open()) {
+        string station1, station2;
+        int distance;
+        while (file >> station1 >> station2 >> distance) {
+            addEdge(station1, station2, distance, adj);
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open edges.txt\n";
+    }
+}
+
+void saveEdges(const unordered_map<string, vector<pair<string, int>>>& adj) {
+    ofstream file("edges.txt");
+    if (file.is_open()) {
+        set<pair<string, pair<string, int>>> edgeSet; // To avoid duplicate edges
+        for (const auto &node : adj) {
+            for (const auto &neighbor : node.second) {
+                if (node.first < neighbor.first) { // Avoid duplicate entries
+                    edgeSet.insert({node.first, {neighbor.first, neighbor.second}});
+                }
+            }
+        }
+        for (const auto &edge : edgeSet) {
+            file << edge.first << " " << edge.second.first << " " << edge.second.second << endl;
+        }
+        file.close();
+    } else {
+        cerr << "Error: Unable to open edges.txt\n";
+    }
+}
+
+bool login(const string &username, const string &password) {
+    auto it = users.find(username);
+    return it != users.end() && it->second == password;
+}
+
+bool adminLogin(const string &username, const string &password) {
+    auto it = adminCredentials.find(username);
+    return it != adminCredentials.end() && it->second == password;
+}
+
+void registerUser(const string &username, const string &password) {
+    users[username] = password;
+    saveUsers();
+}
+
+void unregisterUser(const string &username) {
+    users.erase(username);
+    saveUsers();
+}
+
+vector<string> shortestPath(const unordered_map<string, vector<pair<string, int>>>& adj, const string &src, const string &dst) {
+    unordered_map<string, int> dist;
+    unordered_map<string, string> prev;
+    set<pair<int, string>> pq;
+
+    for (const auto &node : adj) {
+        dist[node.first] = numeric_limits<int>::max();
+    }
+    dist[src] = 0;
+    pq.insert({0, src});
+
+    while (!pq.empty()) {
+        string u = pq.begin()->second;
+        pq.erase(pq.begin());
+
+        if (u == dst) break;
+
+        for (const auto &neighbor : adj.at(u)) {
+            string v = neighbor.first;
+            int weight = neighbor.second;
+            int alt = dist[u] + weight;
+
+            if (alt < dist[v]) {
+                pq.erase({dist[v], v});
+                dist[v] = alt;
+                prev[v] = u;
+                pq.insert({alt, v});
+            }
+        }
+    }
+
+    vector<string> path;
+    for (string at = dst; at != ""; at = prev[at]) {
+        path.push_back(at);
+    }
+    reverse(path.begin(), path.end());
+
+    if (path.size() == 1 && path[0] != src) {
+        return {}; // No path found
+    }
+    return path;
+}
+
+void displayHelplines() {
+    string station;
+    cout << "Enter station name to get helpline numbers: ";
+    cin.ignore();
+    getline(cin, station);
+
+    if (helplines.find(station) != helplines.end()) {
+        cout << "Helpline numbers for " << station << ":\n";
+        for (const auto& [service, number] : helplines[station]) {
+            cout << service << ": " << number << endl;
+        }
+    } else {
+        cout << "Station not found.\n";
+    }
+}
+
+void removeEdge(string s1, string s2, unordered_map<string, vector<pair<string, int>>>& adj) {
+    auto removeFromAdjList = [](vector<pair<string, int>>& list, const string& station) {
+        list.erase(remove_if(list.begin(), list.end(), [&](const pair<string, int>& p) {
+            return p.first == station;
+        }), list.end());
     };
 
-    unordered_map<string, Vertex> vtces; // Map of vertices
+    removeFromAdjList(adj[s1], s2);
+    removeFromAdjList(adj[s2], s1);
+}
 
-public:
-    // Constructor
-    Graph_M() {}
+void updateEdge(string s1, string s2, int newDist, unordered_map<string, vector<pair<string, int>>>& adj) {
+    removeEdge(s1, s2, adj);
+    addEdge(s1, s2, newDist, adj);
+}
 
-    // Get number of vertices
-    int numVertices() {
-        return vtces.size();
-    }
+void addNewStationHelplines(const string &station) {
+    if (helplines.find(station) == helplines.end()) {
+        string service, number;
+        cout << "The station " << station << " is new. Please enter helpline numbers for the following services:\n";
+        vector<string> services = {"Police", "Fire", "Ambulance", "Cleaners"};
 
-    // Check if vertex exists
-    bool containsVertex(string vname) {
-        return vtces.find(vname) != vtces.end();
-    }
-
-    // Add a vertex
-    void addVertex(string vname) {
-        vtces[vname] = Vertex();
-    }
-
-    // Remove a vertex
-    void removeVertex(string vname) {
-        Vertex vtx = vtces[vname];
-        vector<string> keys;
-
-        // Remove edges from neighbors
-        for (auto& kv : vtx.nbrs) {
-            string key = kv.first;
-            vtces[key].nbrs.erase(vname);
-            keys.push_back(key);
+        for (const auto& svc : services) {
+            cout << svc << ": ";
+            cin.ignore();
+            getline(cin, number);
+            helplines[station][svc] = number;
         }
-
-        // Remove vertex itself
-        vtces.erase(vname);
+        saveHelplines();
+        cout << "Helplines for " << station << " have been added.\n";
     }
+}
 
-    // Get number of edges
-    int numEdges() {
-        int count = 0;
-        for (auto& kv : vtces) {
-            count += kv.second.nbrs.size();
-        }
-        return count / 2; // Since each edge is counted twice
-    }
+bool userOperations(const string &username, const unordered_map<string, vector<pair<string, int>>>& adj) {
+    while (true) {
+        int operation;
+        cout << "Welcome to Indore Metro, " << username << "!\n";
+        cout << "1. Find shortest path\n2. Important numbers\n3. Unregister user\n4. Logout\nEnter your choice: ";
+        cin >> operation;
 
-    // Check if edge exists between two vertices
-    bool containsEdge(string vname1, string vname2) {
-        if (!containsVertex(vname1) || !containsVertex(vname2)) return false;
-        return vtces[vname1].nbrs.find(vname2) != vtces[vname1].nbrs.end();
-    }
+        if (operation == 1) {
+            string src, dst;
+            cout << "Enter source station: ";
+            cin.ignore();
+            getline(cin, src);
+            cout << "Enter destination station: ";
+            getline(cin, dst);
 
-    // Add an edge between two vertices
-    void addEdge(string vname1, string vname2, int value) {
-        if (!containsVertex(vname1) || !containsVertex(vname2) || containsEdge(vname1, vname2)) return;
-        vtces[vname1].nbrs[vname2] = value;
-        vtces[vname2].nbrs[vname1] = value;
-    }
-
-    // Remove an edge between two vertices
-    void removeEdge(string vname1, string vname2) {
-        if (!containsVertex(vname1) || !containsVertex(vname2) || !containsEdge(vname1, vname2)) return;
-        vtces[vname1].nbrs.erase(vname2);
-        vtces[vname2].nbrs.erase(vname1);
-    }
-
-    // Display the metro map
-    void displayMap() {
-        cout << "\t Indore Metro Map" << endl;
-        cout << "\t------------------" << endl;
-        for (auto& kv : vtces) {
-            string key = kv.first;
-            Vertex vtx = kv.second;
-            cout << key << " =>" << endl;
-            for (auto& nbr : vtx.nbrs) {
-                cout << "\t" << nbr.first << "\t";
-                if (nbr.first.length() < 16) cout << "\t";
-                if (nbr.first.length() < 8) cout << "\t";
-                cout << nbr.second << " km" << endl;
-            }
-        }
-        cout << "\t------------------" << endl;
-    }
-
-    // Display all stations
-    void displayStations() {
-        cout << "\n***********************************************************************\n";
-        int i = 1;
-        for (auto& kv : vtces) {
-            cout << i << ". " << kv.first << endl;
-            i++;
-        }
-        cout << "\n***********************************************************************\n";
-    }
-
-    // Check if there is a path between two vertices using DFS
-    bool hasPath(string vname1, string vname2, unordered_map<string, bool>& processed) {
-        if (containsEdge(vname1, vname2)) return true;
-
-        processed[vname1] = true;
-        Vertex vtx = vtces[vname1];
-        for (auto& nbr : vtx.nbrs) {
-            if (!processed[nbr.first] && hasPath(nbr.first, vname2, processed)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Structure for Dijkstra's algorithm
-    struct DijkstraPair {
-        string vname;
-        string psf;
-        int cost;
-
-        bool operator<(const DijkstraPair& other) const {
-            return cost > other.cost; // Min-heap based on cost
-        }
-    };
-
-    // Dijkstra's algorithm to find shortest path distance
-    int dijkstra(string src, string des) {
-        priority_queue<DijkstraPair> pq;
-        unordered_map<string, DijkstraPair> map;
-
-        // Initialize all vertices with infinite cost, except source
-        for (auto& kv : vtces) {
-            DijkstraPair np;
-            np.vname = kv.first;
-            np.cost = INT_MAX;
-            if (np.vname == src) {
-                np.cost = 0;
-                np.psf = src;
-            }
-            pq.push(np);
-            map[kv.first] = np;
-        }
-
-        // Process vertices while priority queue is not empty
-        while (!pq.empty()) {
-            DijkstraPair rp = pq.top();
-            pq.pop();
-
-            // If destination is reached, return cost
-            if (rp.vname == des) return rp.cost;
-
-            map.erase(rp.vname);
-
-            Vertex v = vtces[rp.vname];
-            for (auto& nbr : v.nbrs) {
-                if (map.find(nbr.first) != map.end()) {
-                    int oc = map[nbr.first].cost;
-                    int nc = rp.cost + nbr.second;
-                    if (nc < oc) {
-                        DijkstraPair& gp = map[nbr.first];
-                        gp.psf = rp.psf + nbr.first;
-                        gp.cost = nc;
-                        pq.push(gp);
+            vector<string> path = shortestPath(adj, src, dst);
+            if (!path.empty()) {
+                cout << "Shortest path from " << src << " to " << dst << ":\n";
+                for (const auto &station : path) {
+                    cout << station << " ";
+                }
+                cout << endl;
+                int totalDistance = 0;
+                for (size_t i = 0; i < path.size() - 1; ++i) {
+                    for (const auto &neighbor : adj.at(path[i])) {
+                        if (neighbor.first == path[i + 1]) {
+                            totalDistance += neighbor.second;
+                            break;
+                        }
                     }
                 }
+                cout << "Total distance: " << totalDistance << " km\n";
+                cout << "Charge: " << totalDistance * 5 << " INR\n";
+            } else {
+                cout << "No path found.\n";
             }
-        }
-        return INT_MAX; // Destination not reachable
-    }
-
-    // Structure for path finding
-    struct Pair {
-        string vname;
-        string psf;
-        int min_dis;
-    };
-
-    // Utility function to get path with minimum distance
-    string getMinPath(string src, string dst) {
-        int min_val = INT_MAX;
-        string ans;
-        unordered_map<string, bool> processed;
-        deque<Pair> stack;
-
-        // Start with source vertex
-        Pair sp;
-        sp.vname = src;
-        sp.psf = src + "  ";
-        sp.min_dis = 0;
-        stack.push_front(sp);
-
-        // Process vertices until stack is empty
-        while (!stack.empty()) {
-            Pair rp = stack.front();
-            stack.pop_front();
-
-            if (processed[rp.vname]) continue;
-            processed[rp.vname] = true;
-
-            if (rp.vname == dst) {
-                if (rp.min_dis < min_val) {
-                    ans = rp.psf;
-                    min_val = rp.min_dis;
-                }
-                continue;
+        } else if (operation == 2) {
+            displayHelplines();
+        } else if (operation == 3) {
+            cout << "Are you sure you want to unregister? (yes/no): ";
+            string confirmation;
+            cin >> confirmation;
+            if (confirmation == "yes") {
+                users.erase(username);
+                saveUsers();
+                cout << "You have been unregistered.\n";
+                return false; // Exit the user operations
             }
-
-            Vertex rpvtx = vtces[rp.vname];
-            for (auto& nbr : rpvtx.nbrs) {
-                if (!processed[nbr.first]) {
-                    Pair np;
-                    np.vname = nbr.first;
-                    np.psf = rp.psf + nbr.first + "  ";
-                    np.min_dis = rp.min_dis + nbr.second;
-                    stack.push_front(np);
-                }
-            }
+        } else if (operation == 4) {
+            cout << "Logging out...\n";
+            return false; // Logout and exit user operations
+        } else {
+            cout << "Invalid choice.\n";
         }
-        ans += to_string(min_val) + " km";
-        return ans;
     }
+}
 
-    // Get interchanges between stations in a path
-    vector<string> getInterchanges(string path) {
-        vector<string> arr;
-        size_t pos = 0;
-        string token;
-        while ((pos = path.find("  ")) != string::npos) {
-            token = path.substr(0, pos);
-            arr.push_back(token);
-            path.erase(0, pos + 2);
+bool adminOperations(unordered_map<string, vector<pair<string, int>>>& adj) {
+    while (true) {
+        int operation;
+        cout << "Admin Panel\n";
+        cout << "1. Update helpline numbers\n2. Add an edge\n3. Remove an edge\n4. Update an edge\n5. Logout\nEnter your choice: ";
+        cin >> operation;
+
+        if (operation == 1) {
+            string station, service, number;
+            cout << "Enter station name: ";
+            cin.ignore();
+            getline(cin, station);
+            cout << "Enter service name: ";
+            getline(cin, service);
+            cout << "Enter new helpline number: ";
+            getline(cin, number);
+
+            helplines[station][service] = number;
+            saveHelplines();
+            cout << "Helpline number updated.\n";
+        } else if (operation == 2) {
+            string s1, s2;
+            int distance;
+            cout << "Enter first station: ";
+            cin.ignore();
+            getline(cin, s1);
+            cout << "Enter second station: ";
+            getline(cin, s2);
+            cout << "Enter distance: ";
+            cin >> distance;
+
+            addEdge(s1, s2, distance, adj);
+
+            // Check and add helplines for new stations
+            addNewStationHelplines(s1);
+            addNewStationHelplines(s2);
+
+            saveEdges(adj);
+            cout << "Edge added.\n";
+        } else if (operation == 3) {
+            string s1, s2;
+            cout << "Enter first station: ";
+            cin.ignore();
+            getline(cin, s1);
+            cout << "Enter second station: ";
+            getline(cin, s2);
+
+            removeEdge(s1, s2, adj);
+            saveEdges(adj);
+            cout << "Edge removed.\n";
+        } else if (operation == 4) {
+            string s1, s2;
+            int newDist;
+            cout << "Enter first station: ";
+            cin.ignore();
+            getline(cin, s1);
+            cout << "Enter second station: ";
+            getline(cin, s2);
+            cout << "Enter new distance: ";
+            cin >> newDist;
+
+            updateEdge(s1, s2, newDist, adj);
+            saveEdges(adj);
+            cout << "Edge updated.\n";
+        } else if (operation == 5) {
+            cout << "Logging out...\n";
+            return false; // Logout and exit the program
+        } else {
+            cout << "Invalid choice.\n";
         }
-        arr.push_back(path); // Last station
-        return arr;
     }
-};
-
-// Function to create the metro map for Indore
-void createMetroMap(Graph_M& g) {
-    g.addVertex("Vijay Nagar");
-    g.addVertex("Bhawarkua");
-    g.addVertex("Regal Square");
-    g.addVertex("Rajwada");
-    g.addVertex("Indore Junction");
-    g.addVertex("Vijay Nagar Square");
-    g.addVertex("Palasia");
-    g.addVertex("Geeta Bhawan");
-    g.addVertex("Navlakha");
-    g.addVertex("Mhow Naka");
-    g.addVertex("Nanda Nagar");
-    g.addVertex("Rau");
-    g.addVertex("Bangali Square");
-
-    g.addEdge("Vijay Nagar", "Bhawarkua", 4);
-    g.addEdge("Bhawarkua", "Regal Square", 3);
-    g.addEdge("Regal Square", "Rajwada", 1);
-    g.addEdge("Rajwada", "Indore Junction", 2);
-    g.addEdge("Indore Junction", "Vijay Nagar Square", 5);
-    g.addEdge("Vijay Nagar Square", "Palasia", 3);
-    g.addEdge("Palasia", "Geeta Bhawan", 2);
-    g.addEdge("Geeta Bhawan", "Navlakha", 4);
-    g.addEdge("Navlakha", "Mhow Naka", 5);
-    g.addEdge("Mhow Naka", "Nanda Nagar", 3);
-    g.addEdge("Nanda Nagar", "Rau", 6);
-    g.addEdge("Rau", "Bangali Square", 4);
 }
 
 int main() {
-    Graph_M g;
-    createMetroMap(g);
+    unordered_map<string, vector<pair<string, int>>> adj;
+    loadUsers();
+    loadAdminCredentials();
+    loadHelplines();
+    loadEdges(adj);
 
-    g.displayMap();
+    while (true) {
+        int choice;
+        cout << "1. User Login\n2. Admin Login\n3. Register User\n4. Exit\nEnter your choice: ";
+        cin >> choice;
 
-    cout << "\nTotal Stations: " << g.numVertices() << endl;
-    cout << "Total Edges: " << g.numEdges() << endl;
+        if (choice == 1) {
+            string username, password;
+            cout << "Enter username: ";
+            cin.ignore();
+            getline(cin, username);
+            cout << "Enter password: ";
+            getline(cin, password);
 
-    string src = "Vijay Nagar";
-    string des = "Geeta Bhawan";
-    cout << "\nShortest Path from " << src << " to " << des << ": ";
-    string path1 = g.getMinPath(src, des);
-    cout << path1 << endl;
-    cout << "Interchanges: ";
-    vector<string> interchanges1 = g.getInterchanges(path1);
-    for (string stn : interchanges1) {
-        cout << stn << " -> ";
+            if (login(username, password)) {
+                cout << "Login successful.\n";
+                if (!userOperations(username, adj)) {
+                    continue; // Return to main menu after logout
+                }
+            } else {
+                cout << "Invalid username or password.\n";
+            }
+        } else if (choice == 2) {
+            string username, password;
+            cout << "Enter admin username: ";
+            cin.ignore();
+            getline(cin, username);
+            cout << "Enter admin password: ";
+            getline(cin, password);
+
+            if (adminLogin(username, password)) {
+                cout << "Admin login successful.\n";
+                if (!adminOperations(adj)) {
+                    continue; // Return to main menu after logout
+                }
+            } else {
+                cout << "Invalid admin credentials.\n";
+            }
+        } else if (choice == 3) {
+            string username, password;
+            cout << "Enter new username: ";
+            cin.ignore();
+            getline(cin, username);
+            cout << "Enter new password: ";
+            getline(cin, password);
+
+            if (users.find(username) == users.end()) {
+                registerUser(username, password);
+                cout << "Registration successful.\n";
+            } else {
+                cout << "Username already exists.\n";
+            }
+        } else if (choice == 4) {
+            cout << "Exiting...\n";
+            break;
+        } else {
+            cout << "Invalid choice.\n";
+        }
     }
-    cout << endl;
-
     return 0;
 }

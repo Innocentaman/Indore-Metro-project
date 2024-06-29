@@ -1,0 +1,13 @@
+Aurobindo_hospital Vijay_Nagar_Square 8
+Bhawarkua Vijay_Nagar 4
+Bhawarkua Regal_Square 3
+Rajwada Regal_Square 1
+Indore_Junction Rajwada 2
+Indore_Junction Vijay_Nagar_Square 5
+Palasia Vijay_Nagar_Square 3
+Nanda_Nagar Rau 6
+Bangali_Square Rau 4
+Geeta_Bhawan Palasia 2
+Geeta_Bhawan Navlakha 4
+Mhow_Naka Navlakha 5
+Mhow_Naka Nanda_Nagar 3
